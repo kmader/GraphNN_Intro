@@ -1,0 +1,5 @@
+graphviz
+libgraphviz-dev
+libcgraph6
+unzip
+font-manager

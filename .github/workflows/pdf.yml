@@ -1,0 +1,89 @@
+name: make_pdfs
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: apt_deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y graphviz libgraphviz-dev libcgraph6
+        sudo apt-get install -y inkscape ghostscript
+        sudo apt-get install -y --no-install-recommends chromium-browser
+    - name: Setup environment
+      run: |
+        mkdir -p download
+        cd download
+        echo "Cached in $HOME/download :"
+        if [[ ! -f miniconda.sh ]]
+         then
+         wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+             -O miniconda.sh
+         fi
+        chmod +x miniconda.sh && ./miniconda.sh -b
+        cd ..
+        export PATH="$HOME/miniconda3/bin:$PATH"
+        conda update --yes conda
+        # Configure the conda environment and put it in the path using the
+        # provided versions
+        conda create -n testenv --yes python=$PYTHON_VERSION pip nose pytest
+        conda env update -n testenv -f binder/environment.yml -q
+        source activate testenv
+        ipython kernel install --user --name testkernel
+        jupyter kernelspec list
+    - name: Build Notebooks
+      run: |
+        export PATH="$HOME/miniconda3/bin:$PATH";
+        source activate testenv;
+        shopt -s globstar;
+        cd notebooks;
+        for nb in *ipynb; do
+            jupyter nbconvert --ExecutePreprocessor.timeout=3600 --ExecutePreprocessor.kernel_name=testkernel "$nb" --to html
+            chromium-browser --no-sandbox --headless --disable-gpu --print-to-pdf=$(basename "$nb" .ipynb).pdf $(basename "$nb" .ipynb).html
+        done
+        cd ..
+    - name: Collect PDFs
+      run: |
+        zip -r pdfs.zip */*.pdf
+        zip -ur pdfs.zip */*.html
+    - name: Make Combined
+      run: |
+        git clone https://github.com/bronson/pdfdir
+        pdfdir/pdfdir-join notebooks/
+        zip -ur pdfs.zip Notebooks.pdf
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: true
+        prerelease: false
+    - name: Upload Release Asset
+      id: upload-zip
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: pdfs.zip
+        asset_name: pdfs.zip
+        asset_content_type: application/zip
+    - name: Upload UberPDF
+      id: upload-pdf
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: Notebooks.pdf
+        asset_name: all_notebooks.pdf
+        asset_content_type: application/pdf
+© 2020 GitHub, Inc.
