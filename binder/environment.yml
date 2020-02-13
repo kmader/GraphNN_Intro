@@ -25,6 +25,7 @@ dependencies:
   - graphviz
   - python-graphviz
   - seaborn
+  - networkx
   - pip
   - pip:
     - keras==2.2.5
