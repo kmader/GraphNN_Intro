@@ -43,7 +43,7 @@ jobs:
         shopt -s globstar;
         cd notebooks;
         for nb in *ipynb; do
-            jupyter nbconvert --ExecutePreprocessor.timeout=3600 --ExecutePreprocessor.kernel_name=testkernel "$nb" --to html
+            jupyter nbconvert --ExecutePreprocessor.timeout=3600 --ExecutePreprocessor.kernel_name=testkernel --execute "$nb" --to html
             chromium-browser --no-sandbox --headless --disable-gpu --print-to-pdf=$(basename "$nb" .ipynb).pdf $(basename "$nb" .ipynb).html
         done
         cd ..
