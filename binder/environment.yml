@@ -12,8 +12,6 @@ dependencies:
   - numpy
   - matplotlib
   - pandas
-  - bokeh
-  - rise
   - notebook>=5.2.2
   - ipywidgets>=6.0.1
   - ipython>=7.5.0
@@ -26,13 +24,12 @@ dependencies:
   - jupyter_contrib_nbextensions
   - graphviz
   - python-graphviz
-  - tornado
+  - seaborn
   - pip
   - pip:
     - keras==2.2.5
     - fsspec>=0.3.3x
-    - plotly==2.1.0
-    - seaborn==0.7.1
+    - plotly
     - pydot
     - distributed
     - psutil
